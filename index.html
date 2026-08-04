@@ -511,6 +511,10 @@ async function startCamera(){
 async function flipCamera(){
   if (!stream) return;
   flipBtn.disabled = true;
+  // Pause the render loop for the swap — detecting/drawing against a video mid-transition
+  // (old track stopped, new one not yet loaded) can throw and permanently kill the rAF chain.
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
   const previousFacingMode = facingMode;
   facingMode = facingMode === "user" ? "environment" : "user";
   try{
@@ -535,6 +539,7 @@ async function flipCamera(){
     showError("Could not switch camera: " + err.message + ". Your device may only have one camera.");
   }
   flipBtn.disabled = false;
+  if (stream) rafId = requestAnimationFrame(processFrame);
 }
 
 function stopCamera(){
@@ -610,46 +615,51 @@ function drawFaces(detections){
 }
 
 function processFrame(){
-  const now = performance.now();
-  const dt = now - lastFrameTime;
-  lastFrameTime = now;
-  const fps = 1000/dt;
-  fpsSmoothed = fpsSmoothed ? fpsSmoothed*0.9 + fps*0.1 : fps;
-  fpsStatus.textContent = "FPS: " + Math.round(fpsSmoothed);
+  try{
+    const now = performance.now();
+    const dt = now - lastFrameTime;
+    lastFrameTime = now;
+    const fps = 1000/dt;
+    fpsSmoothed = fpsSmoothed ? fpsSmoothed*0.9 + fps*0.1 : fps;
+    fpsStatus.textContent = "FPS: " + Math.round(fpsSmoothed);
 
-  ctx.clearRect(0, 0, overlay.width, overlay.height);
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-  if (particleToggle.checked){
-    updateAndDrawParticles();
-  }
-
-  if (motionToggle.checked){
-    const { active, level } = detectMotion();
-    motionDot.classList.toggle("alert", active);
-    motionDot.classList.toggle("on", !active);
-    motionStatus.textContent = active
-      ? `Motion: detected (${Math.round(level*100)}%)`
-      : "Motion: idle";
-    if (active){
-      motionBoost = Math.min(6, motionBoost + level * 20);
-      ctx.strokeStyle = "rgba(248,81,73,0.9)";
-      ctx.lineWidth = 6;
-      ctx.strokeRect(3, 3, overlay.width-6, overlay.height-6);
+    if (particleToggle.checked){
+      updateAndDrawParticles();
     }
-  } else {
-    motionDot.classList.remove("on","alert");
-    motionStatus.textContent = "Motion: off";
-    prevFrame = null;
-  }
 
-  if (faceToggle.checked && faceDetectorReady){
-    const result = faceDetector.detectForVideo(video, now);
-    drawFaces(result.detections);
-    faceDot.classList.toggle("on", result.detections.length > 0);
-    faceStatus.textContent = "Faces: " + result.detections.length;
-  } else {
-    faceDot.classList.remove("on");
-    faceStatus.textContent = faceToggle.checked ? "Faces: loading model…" : "Faces: off";
+    if (motionToggle.checked){
+      const { active, level } = detectMotion();
+      motionDot.classList.toggle("alert", active);
+      motionDot.classList.toggle("on", !active);
+      motionStatus.textContent = active
+        ? `Motion: detected (${Math.round(level*100)}%)`
+        : "Motion: idle";
+      if (active){
+        motionBoost = Math.min(6, motionBoost + level * 20);
+        ctx.strokeStyle = "rgba(248,81,73,0.9)";
+        ctx.lineWidth = 6;
+        ctx.strokeRect(3, 3, overlay.width-6, overlay.height-6);
+      }
+    } else {
+      motionDot.classList.remove("on","alert");
+      motionStatus.textContent = "Motion: off";
+      prevFrame = null;
+    }
+
+    if (faceToggle.checked && faceDetectorReady){
+      const result = faceDetector.detectForVideo(video, now);
+      drawFaces(result.detections);
+      faceDot.classList.toggle("on", result.detections.length > 0);
+      faceStatus.textContent = "Faces: " + result.detections.length;
+    } else {
+      faceDot.classList.remove("on");
+      faceStatus.textContent = faceToggle.checked ? "Faces: loading model…" : "Faces: off";
+    }
+  }catch(err){
+    // A single bad frame (e.g. mid camera-switch) must never permanently stop the loop.
+    console.error("processFrame error:", err);
   }
 
   rafId = requestAnimationFrame(processFrame);
