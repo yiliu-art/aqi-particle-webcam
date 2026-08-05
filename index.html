@@ -22,7 +22,6 @@
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     background:var(--bg);
     color:var(--text);
-    height:100vh;
     overflow:hidden;
   }
   .topbar{
@@ -49,8 +48,6 @@
   .stage{
     position:fixed;
     inset:0;
-    width:100vw;
-    height:100vh;
     background:#000;
     overflow:hidden;
     z-index:0;
@@ -70,7 +67,7 @@
     flex-direction:column;
     align-items:center;
     gap:0;
-    max-height:48vh;
+    max-height:400px; /* JS overrides this to 48% of the real viewport height on load/resize */
     overflow-y:auto;
     padding:14px 16px 18px;
   }
@@ -308,6 +305,20 @@ const aqiStatus = document.getElementById("aqiStatus");
 const fpsStatus = document.getElementById("fpsStatus");
 
 const ctx = overlay.getContext("2d");
+const stageEl = document.getElementById("stage");
+const hudEl = document.querySelector(".hud");
+
+// Some WebView hosts (notably a WebView embedded via Jetpack Compose's AndroidView)
+// resolve vh/vw — and even position:fixed height auto-fill from top+bottom — to 0,
+// even though window.innerHeight itself is correct. Force real pixel sizes instead
+// of trusting CSS viewport units.
+function syncViewportSize(){
+  stageEl.style.width = window.innerWidth + "px";
+  stageEl.style.height = window.innerHeight + "px";
+  hudEl.style.maxHeight = Math.round(window.innerHeight * 0.48) + "px";
+}
+syncViewportSize();
+window.addEventListener("resize", syncViewportSize);
 
 // Offscreen canvas used only for motion detection (downsampled grayscale frames).
 const motionCanvas = document.createElement("canvas");
