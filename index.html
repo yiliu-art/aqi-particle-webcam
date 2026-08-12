@@ -348,7 +348,7 @@ function updateAqiTint(){
 
 async function fetchAirQuality(){
   const city = CITIES[citySelect.value];
-  aqiStatus.textContent = `AQI: loading… (${city.label})`;
+  aqiStatus.textContent = `AQI: loading…`;
   try{
     const fields = POLLUTANTS.map(p => p.key).concat(["european_aqi","us_aqi"]).join(",");
     const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&current=${fields}`;
@@ -358,14 +358,14 @@ async function fetchAirQuality(){
     aqi = json.current;
     aqiDot.classList.remove("alert");
     aqiDot.classList.add("on");
-    aqiStatus.textContent = `AQI: ${aqi.european_aqi} EU / ${aqi.us_aqi} US (${city.label})`;
+    aqiStatus.textContent = `AQI: ${aqi.european_aqi}`;
     updateAqiTint();
     initParticles(); // density/size depend on the new reading
   }catch(err){
     console.error("Air quality fetch failed:", err);
     aqiDot.classList.remove("on");
     aqiDot.classList.add("alert");
-    aqiStatus.textContent = `AQI: fetch failed (${city.label})`;
+    aqiStatus.textContent = `AQI: fetch failed`;
   }
 }
 fetchAirQuality();
