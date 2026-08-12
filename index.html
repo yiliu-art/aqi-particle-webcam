@@ -399,20 +399,37 @@ fetchAirQuality();
 citySelect.addEventListener("change", fetchAirQuality);
 setInterval(fetchAirQuality, AQI_REFRESH_MS);
 
+function hexToRgb(hex){
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
 function initParticles(){
   if (!overlay.width || !overlay.height) return;
   particles = [];
   for (const species of POLLUTANTS){
     const reading = aqi?.[species.key] ?? species.min;
     const count = Math.round(Math.min(species.max, Math.max(species.min, reading * species.countScale)));
+    const [br, bg, bb] = hexToRgb(species.color);
     for (let i = 0; i < count; i++){
+      // Slight per-particle color/tone variation — real airborne particles are never
+      // perfectly uniform — plus a soft radial falloff instead of a flat disc, and a
+      // gentle size "breathing" pulse so they read as suspended matter, not sprites.
+      const tone = 0.85 + Math.random() * 0.3;
       particles.push({
         x: Math.random() * overlay.width,
         y: Math.random() * overlay.height,
         vx: (Math.random() - 0.5) * 0.4,
         vy: (Math.random() - 0.5) * 0.4,
         r: species.radius * (0.6 + Math.random() * 0.8),
-        color: species.color,
+        rgb: [
+          Math.min(255, Math.round(br * tone)),
+          Math.min(255, Math.round(bg * tone)),
+          Math.min(255, Math.round(bb * tone))
+        ],
+        baseAlpha: 0.35 + Math.random() * 0.4,
+        phase: Math.random() * Math.PI * 2,
+        pulseSpeed: 0.0015 + Math.random() * 0.002,
         jitter: species.jitter,
         drift: species.drift
       });
@@ -423,8 +440,10 @@ function initParticles(){
 function updateAndDrawParticles(){
   if (!particles.length) return;
   motionBoost *= 0.92; // decay any motion-triggered scatter
+  const now = performance.now();
 
   ctx.save();
+  ctx.globalCompositeOperation = "lighter";
   for (const p of particles){
     p.vx += (Math.random() - 0.5) * 0.15 * (p.jitter + motionBoost);
     p.vy += (Math.random() - 0.5) * 0.15 * (p.jitter + motionBoost) - 0.02 * p.drift;
@@ -438,10 +457,18 @@ function updateAndDrawParticles(){
     if (p.y < -10) p.y = overlay.height + 10;
     if (p.y > overlay.height + 10) p.y = -10;
 
+    const pulse = 1 + 0.12 * Math.sin(now * p.pulseSpeed + p.phase);
+    const r = p.r * pulse;
+    const [red, green, blue] = p.rgb;
+
+    const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+    gradient.addColorStop(0, `rgba(${red},${green},${blue},${p.baseAlpha})`);
+    gradient.addColorStop(0.7, `rgba(${red},${green},${blue},${p.baseAlpha * 0.5})`);
+    gradient.addColorStop(1, `rgba(${red},${green},${blue},0)`);
+
     ctx.beginPath();
-    ctx.fillStyle = p.color;
-    ctx.globalAlpha = 0.6;
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
