@@ -342,7 +342,7 @@ buildLegend();
 function updateAqiTint(){
   const ratio = Math.max(0, Math.min(1, (aqi?.european_aqi ?? 0) / 120));
   const intensity = Math.pow(ratio, 1.3) * 0.85;
-  aqiTint.style.background = `rgba(255,255,255,${intensity.toFixed(2)})`;
+  aqiTint.style.background = `rgba(245,245,220,${intensity.toFixed(2)})`;
 }
 
 async function fetchAirQuality(){
