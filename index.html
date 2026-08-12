@@ -106,11 +106,23 @@
     cursor:not-allowed;
   }
   #cameraBtn{
+    width:88px;
+    height:88px;
     background:var(--accent-dim);
     border-color:var(--accent-dim);
+    transition:background 0.15s, border-color 0.15s, transform 0.1s;
+  }
+  #cameraBtn svg{
+    width:40px;
+    height:40px;
   }
   #cameraBtn:hover:not(:disabled){
     background:var(--accent);
+  }
+  #cameraBtn:active:not(:disabled){
+    transform:scale(0.85);
+    background:var(--warn);
+    border-color:var(--warn);
   }
   #cameraBtn.recording{
     background:#3a1f1f;
@@ -118,6 +130,10 @@
   }
   #cameraBtn.recording:hover:not(:disabled){
     background:#4a2525;
+  }
+  #cameraBtn.recording:active:not(:disabled){
+    background:var(--warn);
+    border-color:var(--warn);
   }
   .city-wrap{
     position:relative;
