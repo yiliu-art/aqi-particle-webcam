@@ -369,7 +369,7 @@ buildLegend();
 // Red tint over the camera stage scales with how bad the air is (EU AQI 0-120+ -> opacity 0-0.45).
 function updateAqiTint(){
   const ratio = Math.max(0, Math.min(1, (aqi?.european_aqi ?? 0) / 120));
-  const intensity = Math.pow(ratio, 1.3) * 0.7; // steeper curve + higher ceiling for bad air
+  const intensity = Math.pow(ratio, 1.3) * 0.35; // steeper curve, lighter ceiling for bad air
   aqiTint.style.background = `rgba(248,81,73,${intensity.toFixed(2)})`;
 }
 
