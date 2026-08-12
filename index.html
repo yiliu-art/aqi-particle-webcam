@@ -24,27 +24,6 @@
     color:var(--text);
     overflow:hidden;
   }
-  .topbar{
-    position:fixed;
-    top:0; left:0; right:0;
-    z-index:10;
-    display:flex;
-    align-items:baseline;
-    gap:10px;
-    padding:10px 16px;
-    background:rgba(13,17,23,0.6);
-    backdrop-filter:blur(6px);
-  }
-  h1{
-    font-size:1.05rem;
-    font-weight:600;
-    margin:0;
-  }
-  .subtitle{
-    color:var(--muted);
-    font-size:0.78rem;
-    margin:0;
-  }
   .stage{
     position:fixed;
     inset:0;
@@ -213,11 +192,6 @@
 </style>
 </head>
 <body>
-
-<div class="topbar">
-  <h1>Live Face &amp; Motion Feed</h1>
-  <div class="subtitle">Runs entirely in your browser &mdash; nothing is uploaded anywhere.</div>
-</div>
 
 <div class="stage" id="stage">
   <div id="placeholder">Camera is off.<br>Click "Start Camera" to begin.</div>
