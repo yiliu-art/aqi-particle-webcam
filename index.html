@@ -185,8 +185,21 @@
   .dot.on{background:var(--accent);}
   .dot.alert{background:var(--danger);}
   #legend{display:contents;}
+  #legend button.toggle{
+    background:none;
+    border:none;
+    padding:0;
+    font:inherit;
+  }
   #indicatorPanel .pill, #indicatorPanel .toggle{
     color:#000;
+  }
+  .pollutant-explain{
+    flex-basis:100%;
+    font-size:0.78rem;
+    color:#000;
+    text-align:center;
+    padding:6px 12px 0;
   }
   #errorBox{
     margin-top:12px;
@@ -226,6 +239,7 @@
   <div class="pill"><span class="dot" id="aqiDot"></span><span id="aqiStatus">AQI: loading&hellip;</span></div>
   <div class="pill" style="display:none"><span id="fpsStatus">FPS: &ndash;</span></div>
   <span id="legend"></span>
+  <div id="pollutantExplain" class="pollutant-explain" style="display:none"></div>
 </div>
 
 <div class="toggles" style="display:none">
@@ -284,6 +298,7 @@ const particleToggle = document.getElementById("particleToggle");
 const citySelect = document.getElementById("citySelect");
 const aqiTint = document.getElementById("aqiTint");
 const legend = document.getElementById("legend");
+const pollutantExplain = document.getElementById("pollutantExplain");
 const errorBox = document.getElementById("errorBox");
 
 const camDot = document.getElementById("camDot");
@@ -341,9 +356,12 @@ const AQI_REFRESH_MS = 10 * 60 * 1000;
 // character (coarse dust drifts slowly, reactive gases jitter fast).
 // countScale/min/max convert typical μg/m³ ranges into an on-screen count.
 const POLLUTANTS = [
-  { key: "pm10",             label: "PM10",  color: "#888888", radius: 6.0, jitter: 0.5, drift: 0.3, countScale: 1.3, min: 10, max: 80 },
-  { key: "pm2_5",            label: "PM2.5", color: "#000000", radius: 5.0, jitter: 0.8, drift: 0.3, countScale: 2.0, min: 10, max: 80 },
-  { key: "carbon_monoxide",  label: "CO",    color: "#4a3aa7", radius: 4.0, jitter: 0.7, drift: 1.4, countScale: 0.25, min: 10, max: 80 },
+  { key: "pm10",             label: "PM10",  color: "#888888", radius: 6.0, jitter: 0.5, drift: 0.3, countScale: 1.3, min: 10, max: 80,
+    explain: "Coarse dust — road dust, construction, agriculture, and windblown soil (deserts, dry farmland)." },
+  { key: "pm2_5",            label: "PM2.5", color: "#000000", radius: 5.0, jitter: 0.8, drift: 0.3, countScale: 2.0, min: 10, max: 80,
+    explain: "Fine particles — mostly combustion: vehicle exhaust, power plants, industry, wildfires, and burning wood or coal." },
+  { key: "carbon_monoxide",  label: "CO",    color: "#4a3aa7", radius: 4.0, jitter: 0.7, drift: 1.4, countScale: 0.25, min: 10, max: 80,
+    explain: "Carbon monoxide — incomplete combustion from vehicle engines, industrial processes, and heating." },
 ];
 
 let aqi = null; // latest fetched reading, see fetchAirQuality()
@@ -352,10 +370,30 @@ let motionBoost = 0; // decays each frame; motion detection bumps this up
 
 function buildLegend(){
   legend.innerHTML = POLLUTANTS.map(p => `
-    <span class="toggle"><span class="dot on" style="background:${p.color}"></span>${p.label}</span>
+    <button type="button" class="toggle" data-pollutant="${p.key}" aria-expanded="false">
+      <span class="dot on" style="background:${p.color}"></span>${p.label}
+    </button>
   `).join("");
 }
 buildLegend();
+
+// Tap a pollutant in the legend to show/hide a one-line explanation of what
+// causes it. Delegated on `legend` since buildLegend() re-renders its contents
+// on every city switch / refresh.
+legend.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-pollutant]");
+  if (!btn) return;
+  const species = POLLUTANTS.find(p => p.key === btn.dataset.pollutant);
+  const alreadyOpen = btn.getAttribute("aria-expanded") === "true";
+  legend.querySelectorAll("[data-pollutant]").forEach(b => b.setAttribute("aria-expanded", "false"));
+  if (alreadyOpen || !species){
+    pollutantExplain.style.display = "none";
+  } else {
+    btn.setAttribute("aria-expanded", "true");
+    pollutantExplain.textContent = `${species.label}: ${species.explain}`;
+    pollutantExplain.style.display = "block";
+  }
+});
 
 // Red tint over the camera stage scales with how bad the air is (EU AQI 0-120+ -> opacity 0-0.45).
 // White haze over the camera stage — transparent at good air quality, increasingly
