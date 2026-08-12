@@ -105,16 +105,36 @@
     opacity:0.45;
     cursor:not-allowed;
   }
-  #startBtn{
+  #cameraBtn{
     background:var(--accent-dim);
     border-color:var(--accent-dim);
   }
-  #startBtn:hover:not(:disabled){
+  #cameraBtn:hover:not(:disabled){
     background:var(--accent);
   }
-  #stopBtn{
+  #cameraBtn.recording{
     background:#3a1f1f;
     border-color:#5a2a2a;
+  }
+  #cameraBtn.recording:hover:not(:disabled){
+    background:#4a2525;
+  }
+  .city-wrap{
+    position:relative;
+  }
+  .city-wrap svg{
+    pointer-events:none;
+  }
+  #citySelect{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    opacity:0;
+    border:none;
+    background:transparent;
+    padding:0;
+    cursor:pointer;
   }
   .toggles{
     display:flex;
@@ -162,16 +182,6 @@
   .dot.on{background:var(--accent);}
   .dot.alert{background:var(--danger);}
   #legend{display:contents;}
-  #citySelect{
-    background:var(--panel);
-    color:var(--text);
-    border:1px solid var(--border);
-    border-radius:8px;
-    padding:6px 10px;
-    font-size:0.85rem;
-    cursor:pointer;
-  }
-  #citySelect:hover{border-color:var(--accent-dim);}
   #errorBox{
     margin-top:12px;
     max-width:min(90vw,720px);
@@ -203,13 +213,13 @@
 
 <div class="hud">
 
-<div class="controls">
-  <button id="startBtn" class="icon-btn" aria-label="Start camera" title="Start camera">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-  </button>
-  <button id="stopBtn" class="icon-btn" disabled aria-label="Stop camera" title="Stop camera">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h4"></path><path d="M9.34 5H15l2 3h4a2 2 0 0 1 2 2v9.34"></path><circle cx="12" cy="13" r="4"></circle></svg>
-  </button>
+<div id="indicatorPanel" class="status-bar" style="display:none">
+  <div class="pill" style="display:none"><span class="dot" id="camDot"></span><span id="camStatus">Camera: off</span></div>
+  <div class="pill" style="display:none"><span class="dot" id="faceDot"></span><span id="faceStatus">Faces: 0</span></div>
+  <div class="pill" style="display:none"><span class="dot" id="motionDot"></span><span id="motionStatus">Motion: idle</span></div>
+  <div class="pill"><span class="dot" id="aqiDot"></span><span id="aqiStatus">AQI: loading&hellip;</span></div>
+  <div class="pill" style="display:none"><span id="fpsStatus">FPS: &ndash;</span></div>
+  <span id="legend"></span>
 </div>
 
 <div class="toggles" style="display:none">
@@ -227,23 +237,24 @@
   </label>
 </div>
 
-<div class="status-bar">
-  <div class="pill" style="display:none"><span class="dot" id="camDot"></span><span id="camStatus">Camera: off</span></div>
-  <div class="pill" style="display:none"><span class="dot" id="faceDot"></span><span id="faceStatus">Faces: 0</span></div>
-  <div class="pill" style="display:none"><span class="dot" id="motionDot"></span><span id="motionStatus">Motion: idle</span></div>
-  <label class="toggle">
-    City
-    <select id="citySelect">
+<div class="controls">
+  <div class="icon-btn city-wrap" aria-hidden="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+    <select id="citySelect" aria-label="Select city">
       <option value="bergamo">Bergamo, Italy</option>
       <option value="beijing">Beijing, China</option>
       <option value="newdelhi">New Delhi, India</option>
       <option value="zurich">Zürich, Switzerland</option>
       <option value="ndjamena">N'Djamena, Chad</option>
     </select>
-  </label>
-  <div class="pill"><span class="dot" id="aqiDot"></span><span id="aqiStatus">AQI: loading&hellip;</span></div>
-  <div class="pill" style="display:none"><span id="fpsStatus">FPS: &ndash;</span></div>
-  <span id="legend"></span>
+  </div>
+  <button id="indicatorBtn" class="icon-btn" aria-label="Air quality details" title="Air quality details">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+  </button>
+  <button id="cameraBtn" class="icon-btn" aria-label="Start camera" title="Start camera">
+    <svg id="cameraIconOn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+    <svg id="cameraIconOff" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h4"></path><path d="M9.34 5H15l2 3h4a2 2 0 0 1 2 2v9.34"></path><circle cx="12" cy="13" r="4"></circle></svg>
+  </button>
 </div>
 
 <div id="errorBox"></div>
@@ -256,8 +267,11 @@ import { FaceDetector, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@med
 const video = document.getElementById("video");
 const overlay = document.getElementById("overlay");
 const placeholder = document.getElementById("placeholder");
-const startBtn = document.getElementById("startBtn");
-const stopBtn = document.getElementById("stopBtn");
+const cameraBtn = document.getElementById("cameraBtn");
+const cameraIconOn = document.getElementById("cameraIconOn");
+const cameraIconOff = document.getElementById("cameraIconOff");
+const indicatorBtn = document.getElementById("indicatorBtn");
+const indicatorPanel = document.getElementById("indicatorPanel");
 const faceToggle = document.getElementById("faceToggle");
 const motionToggle = document.getElementById("motionToggle");
 const particleToggle = document.getElementById("particleToggle");
@@ -485,7 +499,7 @@ const facingMode = "environment";
 
 async function startCamera(){
   clearError();
-  startBtn.disabled = true;
+  cameraBtn.disabled = true;
   try{
     stream = await navigator.mediaDevices.getUserMedia({
       video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode },
@@ -494,7 +508,7 @@ async function startCamera(){
   }catch(err){
     console.error(err);
     showError("Could not access the camera: " + err.message + ". Check that you've granted camera permission and no other app is using it.");
-    startBtn.disabled = false;
+    cameraBtn.disabled = false;
     return;
   }
 
@@ -515,7 +529,12 @@ async function startCamera(){
 
   camDot.classList.add("on");
   camStatus.textContent = "Camera: on";
-  stopBtn.disabled = false;
+  cameraBtn.classList.add("recording");
+  cameraBtn.setAttribute("aria-label", "Stop camera");
+  cameraBtn.title = "Stop camera";
+  cameraIconOn.style.display = "none";
+  cameraIconOff.style.display = "";
+  cameraBtn.disabled = false;
   prevFrame = null;
   initParticles();
 
@@ -545,8 +564,12 @@ function stopCamera(){
   fpsStatus.textContent = "FPS: –";
   motionBoost = 0;
 
-  startBtn.disabled = false;
-  stopBtn.disabled = true;
+  cameraBtn.classList.remove("recording");
+  cameraBtn.setAttribute("aria-label", "Start camera");
+  cameraBtn.title = "Start camera";
+  cameraIconOn.style.display = "";
+  cameraIconOff.style.display = "none";
+  cameraBtn.disabled = false;
 }
 
 function detectMotion(){
@@ -644,8 +667,13 @@ function processFrame(){
   rafId = requestAnimationFrame(processFrame);
 }
 
-startBtn.addEventListener("click", startCamera);
-stopBtn.addEventListener("click", stopCamera);
+cameraBtn.addEventListener("click", () => {
+  if (stream) stopCamera(); else startCamera();
+});
+indicatorBtn.addEventListener("click", () => {
+  const isOpen = indicatorPanel.style.display !== "none";
+  indicatorPanel.style.display = isOpen ? "none" : "flex";
+});
 window.addEventListener("beforeunload", stopCamera);
 </script>
 </body>
