@@ -235,9 +235,6 @@
   <button id="stopBtn" class="icon-btn" disabled aria-label="Stop camera" title="Stop camera">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h4"></path><path d="M9.34 5H15l2 3h4a2 2 0 0 1 2 2v9.34"></path><circle cx="12" cy="13" r="4"></circle></svg>
   </button>
-  <button id="flipBtn" class="icon-btn" disabled aria-label="Flip camera" title="Flip camera">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-  </button>
 </div>
 
 <div class="toggles" style="display:none">
@@ -286,7 +283,6 @@ const overlay = document.getElementById("overlay");
 const placeholder = document.getElementById("placeholder");
 const startBtn = document.getElementById("startBtn");
 const stopBtn = document.getElementById("stopBtn");
-const flipBtn = document.getElementById("flipBtn");
 const faceToggle = document.getElementById("faceToggle");
 const motionToggle = document.getElementById("motionToggle");
 const particleToggle = document.getElementById("particleToggle");
@@ -506,7 +502,9 @@ async function initFaceDetector(){
 }
 initFaceDetector();
 
-let facingMode = "user";
+// Back camera only — better view for pointing the "smog" overlay at the world
+// rather than yourself, and avoids the flip-camera race entirely.
+const facingMode = "environment";
 
 async function startCamera(){
   clearError();
@@ -541,45 +539,10 @@ async function startCamera(){
   camDot.classList.add("on");
   camStatus.textContent = "Camera: on";
   stopBtn.disabled = false;
-  flipBtn.disabled = false;
   prevFrame = null;
   initParticles();
 
   rafId = requestAnimationFrame(processFrame);
-}
-
-async function flipCamera(){
-  if (!stream) return;
-  flipBtn.disabled = true;
-  // Pause the render loop for the swap — detecting/drawing against a video mid-transition
-  // (old track stopped, new one not yet loaded) can throw and permanently kill the rAF chain.
-  if (rafId) cancelAnimationFrame(rafId);
-  rafId = null;
-  const previousFacingMode = facingMode;
-  facingMode = facingMode === "user" ? "environment" : "user";
-  try{
-    const newStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode },
-      audio: false
-    });
-    stream.getTracks().forEach(t => t.stop());
-    stream = newStream;
-    video.srcObject = stream;
-    await video.play();
-    await new Promise(resolve => {
-      if (video.readyState >= 2) return resolve();
-      video.onloadedmetadata = () => resolve();
-    });
-    overlay.width = video.videoWidth;
-    overlay.height = video.videoHeight;
-    prevFrame = null; // motion baseline is invalid across the cut
-  }catch(err){
-    console.error("Camera flip failed:", err);
-    facingMode = previousFacingMode; // revert, this device likely has only one camera
-    showError("Could not switch camera: " + err.message + ". Your device may only have one camera.");
-  }
-  flipBtn.disabled = false;
-  if (stream) rafId = requestAnimationFrame(processFrame);
 }
 
 function stopCamera(){
@@ -607,7 +570,6 @@ function stopCamera(){
 
   startBtn.disabled = false;
   stopBtn.disabled = true;
-  flipBtn.disabled = true;
 }
 
 function detectMotion(){
@@ -707,7 +669,6 @@ function processFrame(){
 
 startBtn.addEventListener("click", startCamera);
 stopBtn.addEventListener("click", stopCamera);
-flipBtn.addEventListener("click", flipCamera);
 window.addEventListener("beforeunload", stopCamera);
 </script>
 </body>
